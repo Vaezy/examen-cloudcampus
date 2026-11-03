@@ -41,7 +41,7 @@ const router = createBrowserRouter([
         element: <Register />,
       },
       {
-        path: 'shippig_payment',
+        path: 'shipping_payment',
         element: <ShippingPayment />,
       },
       {

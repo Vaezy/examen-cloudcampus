@@ -1,6 +1,11 @@
 // controllers/productController.js
 const Product = require('../models/Product');
 
+/**
+ * Liste les produits du catalogue.
+ * @param {Object} req
+ * @param {Object} res
+ */
 exports.getProducts = async (req, res) => {
     const products = await Product.find();
     res.json(products);

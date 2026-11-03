@@ -25,5 +25,8 @@ build/
 # MongoDB
 data/db/
 
+# Documentation générée
+backend/docs/
+
 # Autre
 .DS_Store

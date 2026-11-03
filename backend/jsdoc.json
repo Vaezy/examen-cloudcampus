@@ -1,0 +1,11 @@
+{
+  "source": {
+    "include": ["./controllers", "./server.js", "./models", "./middlewares"],
+    "includePattern": ".+\\.js$"
+  },
+  "opts": {
+    "destination": "./docs",
+    "readme": "../CHANGELOG.md"
+  },
+  "plugins": ["plugins/markdown"]
+}

@@ -18,11 +18,17 @@ const Admin = () => {
 
   useEffect(() => {
     const fetchData = async () => {
-      const ordersResponse = await getOrders();
-      setOrders(ordersResponse.data);
-
-      const productsResponse = await getProducts();
-      setProducts(productsResponse.data);
+      try {
+        const ordersResponse = await getOrders();
+        const productsResponse = await getProducts();
+        setOrders(Array.isArray(ordersResponse.data) ? ordersResponse.data : []);
+        setProducts(
+          Array.isArray(productsResponse.data) ? productsResponse.data : []
+        );
+      } catch (error) {
+        setOrders([]);
+        setProducts([]);
+      }
     };
 
     fetchData();

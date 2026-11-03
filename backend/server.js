@@ -1,8 +1,11 @@
-// server.js
+/**
+ * @file API Express (produits, commandes, auth). Helmet, CORS, morgan, rate-limit /api/auth.
+ */
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 const connectDB = require('./config/db');
 
@@ -34,6 +37,16 @@ app.use(
   })
 );
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Trop de tentatives. Réessayez dans 15 minutes.' },
+});
+app.use('/api/auth', authLimiter);
+
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));

@@ -1,16 +1,19 @@
 // backend/controllers/orderController.js
 const axios = require('axios');
 const Order = require('../models/Order');
+const Product = require('../models/Product');
+const User = require('../models/User');
 const { gatewayUrl } = require('../config/services');
-const orderLog = require('debug')('orderRoutes:console')
+const orderLog = require('debug')('orderRoutes:console');
 
-
+/**
+ * Crée une commande : contrôle du stock, enregistrement, décrément Mongo, gateway stock, email client.
+ * @param {Object} req - JWT req.user.userId ; body.items, shippingAddress, paymentMethod, shippingMethod
+ * @param {Object} res
+ */
 exports.createOrder = async (req, res) => {
   //userLog(`user is ${JSON.stringify(req.user)}`)
-  console.log(`user is in createOrder ${JSON.stringify(req.user)}`)
-  //const { items, shippingAddress, paymentMethod } = req.body;
   const { items, shippingAddress, paymentMethod, shippingMethod, } = req.body;
-  console.log(`items are ${JSON.stringify(req.body)}`)
   //const { items } = req.body;
   let userId = req.user.userId;
   // let shippingAddress = {
@@ -31,13 +34,23 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
-    // Logique pour préparer les détails de la commande
     const orderDetails = items.map(({ productId, quantity, price }) => {
       console.log(`Produit ID : ${productId}, Quantité : ${quantity}, Price ${price}`);
       return { productId, quantity, price };
     });
 
-    // Création de la commande dans la base de données
+    for (const { productId, quantity } of orderDetails) {
+      const product = await Product.findById(productId);
+      if (!product) {
+        return res.status(404).json({ message: `Produit introuvable : ${productId}` });
+      }
+      if (product.stock < quantity) {
+        return res.status(400).json({
+          message: `Stock insuffisant pour ${product.name} (disponible : ${product.stock}).`,
+        });
+      }
+    }
+
     const total = items.reduce(
       (acc, { price, quantity }) => acc + price * quantity,
       0
@@ -52,35 +65,40 @@ exports.createOrder = async (req, res) => {
       shippingMethod
     });
 
-    // Sauvegarder la commande dans la base de données
     const savedOrder = await newOrder.save();
 
-    console.log('Commande sauvegardée :', savedOrder);
     console.log(`[audit] order created id=${savedOrder._id} user=${userId} total=${total}`);
 
-    // Appel au micro-service de notification
-    try {
-      await axios.post(`${gatewayUrl}/notify`, {
-        to: 'syaob@yahoo.fr',
-        subject: 'Nouvelle Commande Créée',
-        text: `Une commande a été créée avec succès pour les produits suivants : \n${orderDetails
-          .map((item) => `Produit ID : ${item.productId}, Quantité : ${item.quantity}`)
-          .join('\n')}`,
-      });
-    } catch (error) {
-      console.error('Erreur lors de l\'envoi de la notification', error);
+    for (const { productId, quantity } of orderDetails) {
+      await Product.findByIdAndUpdate(productId, { $inc: { stock: -quantity } });
     }
 
-    // Appel au micro-service de gestion des stocks
-    // try {
-    //   await Promise.all(
-    //     items.map(({ productId, quantity }) =>
-    //       axios.post('http://localhost:8000/update-stock', { productId, quantity })
-    //     )
-    //   );
-    // } catch (error) {
-    //   console.error('Erreur lors de la mise à jour des stocks', error);
-    // }
+    try {
+      await Promise.all(
+        orderDetails.map(({ productId, quantity }) =>
+          axios.post(`${gatewayUrl}/update-stock`, { productId, quantity })
+        )
+      );
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour des stocks (gateway)', error.message);
+    }
+
+    try {
+      const user = await User.findById(userId).select('email username');
+      if (user?.email) {
+        await axios.post(`${gatewayUrl}/notify`, {
+          to: user.email,
+          subject: 'Nouvelle Commande Créée',
+          text: `Bonjour ${user.username},\nUne commande a été créée :\n${orderDetails
+            .map((item) => `Produit ID : ${item.productId}, Quantité : ${item.quantity}`)
+            .join('\n')}`,
+        });
+      } else {
+        console.warn(`[audit] notify skipped: no email for user=${userId}`);
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'envoi de la notification', error.message);
+    }
 
     // Réponse de succès
     res.status(201).json({
@@ -149,10 +167,25 @@ exports.createOrder = async (req, res) => {
 //     }
 //   };
 
-exports.deleteOrder = async(req, res)=>{
-    const { orderId } = req.body;
-    console.log(`orderId to delete is ${orderId}`)
-}
+/**
+ * Supprime une commande (admin).
+ * @param {Object} req - params.id
+ * @param {Object} res
+ */
+exports.deleteOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const order = await Order.findByIdAndDelete(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Commande introuvable' });
+    }
+    console.log(`[audit] order deleted id=${id}`);
+    return res.json({ message: 'Commande supprimée' });
+  } catch (error) {
+    console.error('Erreur lors de la suppression de la commande', error);
+    return res.status(500).json({ message: 'Erreur lors de la suppression' });
+  }
+};
 
 exports.getOrders = async(req, res)=>{
 
@@ -162,9 +195,23 @@ exports.getOrders = async(req, res)=>{
 }
 
 exports.validateOrder = async (req, res) => {
-  const { orderId } = req.body;
-  res.status(200).json({message: `Commande ${orderId} validée avec succès.`})
-}
+  try {
+    const { id } = req.params;
+    const order = await Order.findByIdAndUpdate(
+      id,
+      { status: 'En cours de traitement' },
+      { new: true }
+    );
+    if (!order) {
+      return res.status(404).json({ message: 'Commande introuvable' });
+    }
+    console.log(`[audit] order validated id=${id}`);
+    return res.json({ message: `Commande ${id} validée`, order });
+  } catch (error) {
+    console.error('Erreur lors de la validation de la commande', error);
+    return res.status(500).json({ message: 'Erreur lors de la validation' });
+  }
+};
 
 exports.updateOrderStatus = async (req, res) => {
   const { orderId } = req.params;
