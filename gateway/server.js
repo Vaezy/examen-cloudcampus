@@ -1,5 +1,6 @@
 // gateway/server.js
 const express = require('express');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 //const authProxy = require('./routes/auth');
 const notifiProxy = require('./routes/notifi');
@@ -9,7 +10,7 @@ dotenv.config();
 
 const app = express();
 
-// Middleware pour analyser les requêtes JSON
+app.use(helmet());
 app.use(express.json());
 
 // Routes principales pour chaque microservice
