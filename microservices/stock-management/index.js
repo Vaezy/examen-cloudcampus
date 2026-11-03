@@ -3,6 +3,7 @@ const app = express();
 const PORT = process.env.PORT || 4003;
 
 app.use(express.json());
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 app.post('/update-stock', (req, res) => {
     const { productId, quantity } = req.body;

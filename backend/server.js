@@ -27,6 +27,7 @@ app.use(
   })
 );
 app.use(express.json());
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));
 app.use('/api/auth', require('./routes/authRoutes'));
