@@ -53,9 +53,7 @@ const Order = () => {
         items: cart.map((item) => ({
           productId: item.id,
           quantity: item.quantity,
-          price: item.price,
         })),
-        total: cart.reduce((acc, item) => acc + item.price * item.quantity, 0),
         shippingAddress,
         paymentMethod,
         shippingMethod,
