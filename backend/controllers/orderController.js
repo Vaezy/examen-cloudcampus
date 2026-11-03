@@ -6,13 +6,14 @@ const User = require('../models/User');
 const { gatewayUrl } = require('../config/services');
 const orderLog = require('debug')('orderRoutes:console');
 
-
+/**
+ * Crée une commande : contrôle du stock, enregistrement, décrément Mongo, gateway stock, email client.
+ * @param {Object} req - JWT req.user.userId ; body.items, shippingAddress, paymentMethod, shippingMethod
+ * @param {Object} res
+ */
 exports.createOrder = async (req, res) => {
   //userLog(`user is ${JSON.stringify(req.user)}`)
-  console.log(`user is in createOrder ${JSON.stringify(req.user)}`)
-  //const { items, shippingAddress, paymentMethod } = req.body;
   const { items, shippingAddress, paymentMethod, shippingMethod, } = req.body;
-  console.log(`items are ${JSON.stringify(req.body)}`)
   //const { items } = req.body;
   let userId = req.user.userId;
   // let shippingAddress = {
@@ -66,7 +67,6 @@ exports.createOrder = async (req, res) => {
 
     const savedOrder = await newOrder.save();
 
-    console.log('Commande sauvegardée :', savedOrder);
     console.log(`[audit] order created id=${savedOrder._id} user=${userId} total=${total}`);
 
     for (const { productId, quantity } of orderDetails) {
@@ -167,6 +167,11 @@ exports.createOrder = async (req, res) => {
 //     }
 //   };
 
+/**
+ * Supprime une commande (admin).
+ * @param {Object} req - params.id
+ * @param {Object} res
+ */
 exports.deleteOrder = async (req, res) => {
   try {
     const { id } = req.params;

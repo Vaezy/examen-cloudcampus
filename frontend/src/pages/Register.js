@@ -4,6 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_BASE_URL } from '../config';
 
+const PASSWORD_RULE =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}$/;
+const PASSWORD_HINT =
+  '12 caractères min., 1 majuscule, 1 minuscule, 1 chiffre, 1 caractère spécial.';
+
 const Register = () => {
   const [formData, setFormData] = useState({
     username: '',
@@ -22,7 +27,12 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!PASSWORD_RULE.test(formData.password)) {
+      setError(PASSWORD_HINT);
+      return;
+    }
     try {
+      setError('');
       await axios.post(`${API_BASE_URL}/auth/register`, formData);
       alert('Inscription réussie ! Vous pouvez maintenant vous connecter.');
       navigate('/login');
@@ -66,10 +76,15 @@ const Register = () => {
           type="password"
           name="password"
           placeholder="Mot de passe"
+          title={PASSWORD_HINT}
+          pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,}"
           value={formData.password}
           onChange={handleChange}
-          className="border border-gray-300 p-2 w-full mb-4"
+          minLength={12}
+          required
+          className="border border-gray-300 p-2 w-full"
         />
+        <p className="text-xs text-gray-500 mt-1 mb-4">{PASSWORD_HINT}</p>
         <button type="submit" className="bg-blue-500 text-white p-2 w-full rounded">S'inscrire</button>
       </form>
     </div>

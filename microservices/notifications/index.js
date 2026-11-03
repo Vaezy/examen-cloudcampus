@@ -26,7 +26,7 @@ console.log(
 // Route pour envoyer un email
 app.post('/notify', async (req, res) => {
   const { to, subject, text } = req.body;
-  console.log(`to is ${to} subject is ${subject} text is ${text}`)
+  console.log(`[audit] notify subject=${subject} to_len=${to ? String(to).length : 0}`);
 
   //const { message } = req.body;
     //console.log(`Notification: ${text}`);
