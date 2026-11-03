@@ -17,7 +17,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-console.log(`rocess.env.EMAIL_USER is ${process.env.EMAIL_USER} process.env.EMAIL_APPLICATION_PASSWORD is ${process.env.EMAIL_APPLICATION_PASSWORD}`);
+console.log(
+  process.env.EMAIL_USER
+    ? 'Service mail configuré'
+    : 'Service mail : EMAIL_USER manquant'
+);
 // Route pour envoyer un email
 app.post('/notify', async (req, res) => {
   const { to, subject, text } = req.body;

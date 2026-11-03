@@ -4,6 +4,11 @@ const cors = require('cors');
 require('dotenv').config();
 const connectDB = require('./config/db');
 
+if (!process.env.JWT_SECRET) {
+  console.error('JWT_SECRET manquant : refuse de démarrer.');
+  process.exit(1);
+}
+
 const app = express();
 connectDB();
 
