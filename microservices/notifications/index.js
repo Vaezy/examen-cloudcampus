@@ -7,6 +7,7 @@ require('dotenv').config()
 
 const app = express();
 app.use(bodyParser.json());
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Configuration de Nodemailer
 const transporter = nodemailer.createTransport({
@@ -17,7 +18,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-console.log(`rocess.env.EMAIL_USER is ${process.env.EMAIL_USER} process.env.EMAIL_APPLICATION_PASSWORD is ${process.env.EMAIL_APPLICATION_PASSWORD}`);
+console.log(
+  process.env.EMAIL_USER
+    ? 'Service mail configuré'
+    : 'Service mail : EMAIL_USER manquant'
+);
 // Route pour envoyer un email
 app.post('/notify', async (req, res) => {
   const { to, subject, text } = req.body;
@@ -45,7 +50,7 @@ app.post('/notify', async (req, res) => {
 });
 
 // Lancer le service Notification
-const PORT = process.env.NOTIFI_PORT || 4002;
+const PORT = process.env.PORT || process.env.NOTIFI_PORT || 4002;
 app.listen(PORT, () => {
   console.log(`Service de notification en écoute sur le port ${PORT}`);
 });

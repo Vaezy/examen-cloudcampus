@@ -1,6 +1,7 @@
 // backend/controllers/orderController.js
 const axios = require('axios');
 const Order = require('../models/Order');
+const { gatewayUrl } = require('../config/services');
 const orderLog = require('debug')('orderRoutes:console')
 
 
@@ -58,7 +59,7 @@ exports.createOrder = async (req, res) => {
 
     // Appel au micro-service de notification
     try {
-      await axios.post('http://localhost:8000/notify', {
+      await axios.post(`${gatewayUrl}/notify`, {
         to: 'syaob@yahoo.fr',
         subject: 'Nouvelle Commande Créée',
         text: `Une commande a été créée avec succès pour les produits suivants : \n${orderDetails
