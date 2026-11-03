@@ -32,6 +32,7 @@ Toutes les évolutions notables du projet examen CloudCampus (e-commerce MERN).
 ### Security
 - Helmet, CORS (`FRONTEND_URL`), `JWT_SECRET` obligatoire, bcrypt coût 12, mot de passe `select: false`.
 - `npm audit fix` : backend, gateway, stock à 0 vulnérabilité. Reliquat CRA et Nodemailer documentés.
+- Commande : prix et total calculés depuis Mongo (le `price` client est ignoré) ; quantité entière >= 1 (une valeur négative ne peut plus augmenter le stock).
 
 ## [1.0.0] - 2026-11-03
 

@@ -1,5 +1,6 @@
 // backend/controllers/orderController.js
 const axios = require('axios');
+const mongoose = require('mongoose');
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const User = require('../models/User');
@@ -7,26 +8,15 @@ const { gatewayUrl } = require('../config/services');
 const orderLog = require('debug')('orderRoutes:console');
 
 /**
- * Crée une commande : contrôle du stock, enregistrement, décrément Mongo, gateway stock, email client.
- * @param {Object} req - JWT req.user.userId ; body.items, shippingAddress, paymentMethod, shippingMethod
+ * Crée une commande : prix et stock lus en base (jamais depuis le client),
+ * quantité entière >= 1, décrément Mongo, gateway stock, email client.
+ * @param {Object} req - JWT req.user.userId ; body.items[{productId, quantity}], shippingAddress, paymentMethod, shippingMethod
  * @param {Object} res
  */
 exports.createOrder = async (req, res) => {
-  //userLog(`user is ${JSON.stringify(req.user)}`)
-  const { items, shippingAddress, paymentMethod, shippingMethod, } = req.body;
-  //const { items } = req.body;
-  let userId = req.user.userId;
-  // let shippingAddress = {
-  //   "street": "123 Main St",
-  //   "city": "New York",
-  //   "postalCode": "10001",
-  //   "country": "USA"
-  // };
+  const { items, shippingAddress, paymentMethod, shippingMethod } = req.body;
+  const userId = req.user.userId;
 
-  // let paymentMethod =  "Carte bancaire";
-
-
-  // Vérification du format des données
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({
       message: 'Le corps de la requête doit contenir un tableau d\'objets { productId, quantity }.',
@@ -34,12 +24,25 @@ exports.createOrder = async (req, res) => {
   }
 
   try {
-    const orderDetails = items.map(({ productId, quantity, price }) => {
-      console.log(`Produit ID : ${productId}, Quantité : ${quantity}, Price ${price}`);
-      return { productId, quantity, price };
-    });
+    const qtyByProduct = new Map();
+    for (const item of items) {
+      const productId = item && item.productId;
+      const quantity = item && item.quantity;
+      if (!productId || !mongoose.isValidObjectId(productId)) {
+        return res.status(400).json({ message: 'Identifiant produit invalide.' });
+      }
+      if (!Number.isInteger(quantity) || quantity < 1) {
+        return res.status(400).json({
+          message: 'La quantité doit être un entier supérieur ou égal à 1.',
+        });
+      }
+      const key = String(productId);
+      qtyByProduct.set(key, (qtyByProduct.get(key) || 0) + quantity);
+    }
 
-    for (const { productId, quantity } of orderDetails) {
+    const orderDetails = [];
+    let total = 0;
+    for (const [productId, quantity] of qtyByProduct) {
       const product = await Product.findById(productId);
       if (!product) {
         return res.status(404).json({ message: `Produit introuvable : ${productId}` });
@@ -49,12 +52,9 @@ exports.createOrder = async (req, res) => {
           message: `Stock insuffisant pour ${product.name} (disponible : ${product.stock}).`,
         });
       }
+      orderDetails.push({ productId, quantity, price: product.price });
+      total += product.price * quantity;
     }
-
-    const total = items.reduce(
-      (acc, { price, quantity }) => acc + price * quantity,
-      0
-    );
 
     const newOrder = new Order({
       userId,
