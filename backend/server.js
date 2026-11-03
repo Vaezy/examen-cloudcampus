@@ -2,6 +2,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const morgan = require('morgan');
 require('dotenv').config();
 const connectDB = require('./config/db');
 
@@ -27,6 +28,11 @@ app.use(
   })
 );
 app.use(express.json());
+app.use(
+  morgan('combined', {
+    skip: (req) => req.path === '/health',
+  })
+);
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/products', require('./routes/productRoutes'));
 app.use('/api/orders', require('./routes/orderRoutes'));

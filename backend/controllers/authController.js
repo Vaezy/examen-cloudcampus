@@ -9,12 +9,19 @@ exports.login = async (req, res) => {
 
   try {
     const user = await User.findOne({ username });
-    if (!user) return res.status(400).json({ message: 'Utilisateur non trouvé' });
+    if (!user) {
+      console.warn(`[audit] login failed reason=unknown_user user=${username}`);
+      return res.status(400).json({ message: 'Utilisateur non trouvé' });
+    }
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ message: 'Mot de passe incorrect' });
+    if (!isMatch) {
+      console.warn(`[audit] login failed reason=bad_password user=${username}`);
+      return res.status(400).json({ message: 'Mot de passe incorrect' });
+    }
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    console.log(`[audit] login success user=${user.username} role=${user.role}`);
 
     res.json({ token, role: user.role, username: user.username });
   } catch (error) {
@@ -35,6 +42,7 @@ exports.register = async (req, res) => {
 
     const user = new User({ username, email, password });
     await user.save();
+    console.log(`[audit] register success user=${username}`);
 
     // Envoyer un email de bienvenue
     // await sendEmail(
