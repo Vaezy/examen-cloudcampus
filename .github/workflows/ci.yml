@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, main]
+  pull_request:
+    branches: [develop, main]
+
+jobs:
+  docker:
+    name: Build Docker images
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Compose file
+        run: docker compose config -q
+        env:
+          MONGO_ROOT_USER: ci
+          MONGO_ROOT_PASSWORD: ci
+          JWT_SECRET: ci-build-only
+          EMAIL_USER: ci@example.com
+          EMAIL_APPLICATION_PASSWORD: ci
+
+      - name: Build backend
+        run: docker build -t exam-backend ./backend
+
+      - name: Build gateway
+        run: docker build -t exam-gateway ./gateway
+
+      - name: Build notifications
+        run: docker build -t exam-notify ./microservices/notifications
+
+      - name: Build stock
+        run: docker build -t exam-stock ./microservices/stock-management
+
+      - name: Build frontend
+        run: docker build --build-arg REACT_APP_API_URL=https://ci.example/api -t exam-frontend ./frontend
