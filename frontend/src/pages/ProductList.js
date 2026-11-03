@@ -5,14 +5,19 @@ import { useCart } from '../context/CartContext';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
+  const [error, setError] = useState(null);
   const { dispatch } = useCart();
 
   useEffect(() => {
     fetchProducts()
       .then((response) => {
         setProducts(Array.isArray(response.data) ? response.data : []);
+        setError(null);
       })
-      .catch(() => setProducts([]));
+      .catch(() => {
+        setProducts([]);
+        setError('Impossible de charger les produits.');
+      });
   }, []);
 
   const addToCart = (product) => {
@@ -26,9 +31,10 @@ const ProductList = () => {
   return (
     <div className="p-8">
       <h2 className="text-2xl font-bold mb-4">Liste des Produits</h2>
+      {error && <p className="text-red-500 mb-4">{error}</p>}
       <ul className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {products.map((product) => (
-          <li key={product.id} className="border p-4 rounded shadow">
+          <li key={product._id} className="border p-4 rounded shadow">
             <h3 className="text-lg font-semibold">{product.name}</h3>
             <p className="text-gray-500">{product.price} €</p>
             <button

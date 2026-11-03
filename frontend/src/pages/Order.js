@@ -10,7 +10,7 @@ const Order = () => {
     useCart(); // Récupérer le contenu du panier à partir du contexte
   // Naviguer vers la page de commande
   const handleShippingPage = () => {
-    navigate("/shippig_payment");
+    navigate("/shipping_payment");
   };
 
   const handleSubmit = async (e) => {
