@@ -1,6 +1,7 @@
 // gateway/server.js
 const express = require('express');
 const helmet = require('helmet');
+const morgan = require('morgan');
 const dotenv = require('dotenv');
 //const authProxy = require('./routes/auth');
 const notifiProxy = require('./routes/notifi');
@@ -12,6 +13,11 @@ const app = express();
 
 app.use(helmet());
 app.use(express.json());
+app.use(
+  morgan('combined', {
+    skip: (req) => req.path === '/health',
+  })
+);
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 // Routes principales pour chaque microservice

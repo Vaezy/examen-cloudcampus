@@ -56,6 +56,7 @@ exports.createOrder = async (req, res) => {
     const savedOrder = await newOrder.save();
 
     console.log('Commande sauvegardée :', savedOrder);
+    console.log(`[audit] order created id=${savedOrder._id} user=${userId} total=${total}`);
 
     // Appel au micro-service de notification
     try {
